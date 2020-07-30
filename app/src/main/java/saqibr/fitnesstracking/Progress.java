@@ -35,6 +35,7 @@ import com.google.android.gms.tasks.Task;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -46,9 +47,11 @@ public class Progress extends AppCompatActivity {
 
     private static final String TAG = "FitnessTrackerApi";
     private static final int GOOGLE_FIT_PERMISSIONS_REQUEST_CODE = 1;
+    private static final String STATE_WEIGHT_DATA_SETS = "WeightDataSets";
 
     private LineChart weightChart;
     private DataReadResponse recentReadResponse;
+    private List<Entry> weightSummaryEntries;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -66,6 +69,15 @@ public class Progress extends AppCompatActivity {
             return false;
         }
     };
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        Log.i(TAG, "Saved weight summaries");
+
+        ArrayList<Entry> temp = new ArrayList<>(this.weightSummaryEntries);
+        savedInstanceState.putParcelableArrayList(STATE_WEIGHT_DATA_SETS, temp);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,7 +136,13 @@ public class Progress extends AppCompatActivity {
         YAxis rightAxis = weightChart.getAxisRight();
         rightAxis.setEnabled(false);
 
-        this.getWeightData();
+        if (savedInstanceState != null) {
+            Log.i(TAG, "Using restored state.");
+            this.weightSummaryEntries = savedInstanceState.getParcelableArrayList(STATE_WEIGHT_DATA_SETS);
+            this.addWeightSummaryLineData();
+        } else {
+            this.getWeightData();
+        }
     }
 
     @Override
@@ -199,13 +217,6 @@ public class Progress extends AppCompatActivity {
         }
     }
 
-    private void addWeightSummaryLine(DataReadResponse allWeightSummary) {
-        List<DataSet> recentWeights = GetDataSetsFromResponse(this.recentReadResponse);
-        List<DataSet> weightDataSets = GetDataSetsFromResponse(allWeightSummary);
-        weightDataSets.addAll(recentWeights);
-        this.addWeightSummaryLineData(weightDataSets);
-    }
-
     private static List<DataSet> GetDataSetsFromResponse(DataReadResponse readResponse) {
         List<Bucket> buckets = readResponse.getBuckets();
 
@@ -220,9 +231,8 @@ public class Progress extends AppCompatActivity {
         return readResponse.getDataSets();
     }
 
-    private void addWeightSummaryLineData(List<DataSet> weightSummaryDataSets) {
-        List<Entry> weightSummaryEntries = this.getAverageWeightEntries(weightSummaryDataSets);
-        LineDataSet weightSet = new LineDataSet(weightSummaryEntries, "Average Weight");
+    private void addWeightSummaryLineData() {
+        LineDataSet weightSet = new LineDataSet(this.weightSummaryEntries, "Average Weight");
         weightSet.setAxisDependency(YAxis.AxisDependency.LEFT);
         weightSet.setColor(Color.DKGRAY);
         weightSet.setValueTextSize(9f);
@@ -244,11 +254,13 @@ public class Progress extends AppCompatActivity {
                 this.weightChart.getData().getDataSetCount() > 0) {
             LineDataSet existingDataSet = (LineDataSet) this.weightChart.getData().getDataSetByIndex(0);
             existingDataSet.setValues(weightSummaryEntries);
+            existingDataSet.notifyDataSetChanged();
             this.weightChart.getData().notifyDataChanged();
             this.weightChart.notifyDataSetChanged();
         } else {
             LineData weightData = new LineData(weightSet, new LineDataSet(new ArrayList<Entry>(), "Temp"));
             this.weightChart.setData(weightData);
+            this.weightChart.invalidate();
         }
     }
 
@@ -276,6 +288,7 @@ public class Progress extends AppCompatActivity {
                 this.weightChart.getData().getDataSetCount() > 0) {
             LineDataSet existingDataSet = (LineDataSet) this.weightChart.getData().getDataSetByIndex(1);
             existingDataSet.setValues(weightEntries);
+            existingDataSet.notifyDataSetChanged();
             this.weightChart.getData().notifyDataChanged();
             this.weightChart.notifyDataSetChanged();
         } else {
@@ -372,7 +385,12 @@ public class Progress extends AppCompatActivity {
                                             new OnSuccessListener<DataReadResponse>() {
                                                 @Override
                                                 public void onSuccess(DataReadResponse dataReadResponse) {
-                                                    addWeightSummaryLine(dataReadResponse);
+                                                    List<DataSet> recentWeights = GetDataSetsFromResponse(recentReadResponse);
+                                                    List<DataSet> weightDataSets = GetDataSetsFromResponse(dataReadResponse);
+                                                    weightDataSets.addAll(recentWeights);
+                                                    weightSummaryEntries = getAverageWeightEntries(weightDataSets);
+
+                                                    addWeightSummaryLineData();
                                                     printData(dataReadResponse);
                                                 }
                                             }

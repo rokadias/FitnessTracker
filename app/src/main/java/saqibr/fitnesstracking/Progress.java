@@ -247,8 +247,8 @@ public class Progress extends AppCompatActivity {
 
         this.weightChart.getXAxis().setAxisMaximum(weightSet.getXMax() + (1000 * 60 * 60 * 24 * 3));
         this.weightChart.getXAxis().setAxisMinimum(weightSet.getXMin() - (1000 * 60 * 60 * 24 * 3));
-        this.weightChart.getAxisLeft().setAxisMaximum(weightSet.getYMax() + 3);
-        this.weightChart.getAxisLeft().setAxisMinimum(weightSet.getYMin() - 3);
+        this.weightChart.getAxisLeft().setAxisMaximum(weightSet.getYMax() + 10);
+        this.weightChart.getAxisLeft().setAxisMinimum(weightSet.getYMin() - 10);
 
         if (this.weightChart.getData() != null &&
                 this.weightChart.getData().getDataSetCount() > 0) {
@@ -329,7 +329,7 @@ public class Progress extends AppCompatActivity {
         cal.add(Calendar.WEEK_OF_YEAR, -1);
         cal.set(Calendar.DAY_OF_WEEK, Calendar.FRIDAY);
         long endTime = cal.getTimeInMillis();
-        cal.add(Calendar.WEEK_OF_YEAR, -7);
+        cal.add(Calendar.WEEK_OF_YEAR, -12);
         long startTime = cal.getTimeInMillis();
         cal.setTime(now);
         long recentEndTime = cal.getTimeInMillis();
